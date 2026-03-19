@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_responsive/screen/home.dart';
-import 'screen/login/login_screen.dart';
+// import 'package:test_responsive/screen/order/customer_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,12 +14,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
-      initialRoute: "/login",
+      // initialRoute: "/login",
+      home: HomeScreen(),
 
-      routes: {
-        "/login": (context) => const LoginScreen(),
-        "/home": (context) => const HomeScreen(),
-      },
+      // routes: {
+      //   "/login": (context) => const LoginScreen(),
+      //   "/home": (context) => const HomeScreen(),
+      // },
     );
   }
 }
