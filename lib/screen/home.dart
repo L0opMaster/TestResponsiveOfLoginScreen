@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:test_responsive/provider/auth_provider.dart';
 import 'package:test_responsive/screen/invoice/invice_history_screen.dart';
 import 'package:test_responsive/screen/order/order_screen.dart';
 import 'package:test_responsive/screen/packaging/packging_screen.dart';
@@ -66,8 +68,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
             IconButton(
               constraints: const BoxConstraints(),
-              icon: const Icon(Icons.logout, size: 20),
-              onPressed: () {},
+              icon: const Icon(Icons.logout, size: 20, color: Colors.red),
+              onPressed: () async {
+                await Provider.of<AuthProvider>(
+                  context,
+                  listen: false,
+                ).logOut();
+
+                if (!mounted) return;
+                Navigator.pushReplacementNamed(context, "/login");
+              },
             ),
           ],
         ),

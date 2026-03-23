@@ -7,18 +7,18 @@ class ApiClient {
   ApiClient({required this.baseUrl});
 
   Future<http.Response> post(
-    String endPoint,
+    String endpoint,
     Map<String, String>? body, {
     String? token,
   }) async {
-    final url = Uri.parse('$baseUrl$endPoint');
+    final url = Uri.parse('$baseUrl$endpoint');
     final headers = _buildHeaders(token);
     final response = await http.post(
       url,
       headers: headers,
       body: jsonEncode(body),
     );
-    _handleAuthorError(response);
+    _handleAuthError(response);
     return response;
   }
 
@@ -29,9 +29,9 @@ class ApiClient {
     };
   }
 
-  void _handleAuthorError(http.Response response) {
+  void _handleAuthError(http.Response response) {
     if (response.statusCode == 402) {
-      throw Exception('Unauthor: Please login again');
+      throw Exception('Unauthorized: Please login again');
     }
   }
 }
