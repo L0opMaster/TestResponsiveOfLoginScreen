@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:test_responsive/model/product_model.dart';
+import 'package:test_responsive/provider/product_provider.dart';
 import 'package:test_responsive/screen/order/cart_screen.dart';
 
 class OrderScreen extends StatelessWidget {
@@ -74,6 +77,9 @@ class OrderScreen extends StatelessWidget {
               shape: WidgetStatePropertyAll(
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              onChanged: (value) {
+                context.read<ProductProvider>().search(value);
+              },
             ),
           ],
         ),
@@ -85,27 +91,50 @@ class OrderScreen extends StatelessWidget {
 
   Widget _buildContentBody() {
     return Expanded(
-      child: SizedBox(
-        child: Padding(
-          padding: EdgeInsets.only(top: 20, left: 15, right: 15),
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 220,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 0.60,
-            ),
-            itemCount: 15,
-            itemBuilder: (context, index) {
-              return _buildCardProduct();
+      child: Consumer<ProductProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading && provider.products.isEmpty) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (!provider.isLoading && provider.products.isEmpty) {
+            return Center(
+              child: Text(
+                'រកមិនឃើញទំនិញ',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            );
+          }
+
+          return NotificationListener<ScrollNotification>(
+            onNotification: (scrollInfo) {
+              if (scrollInfo.metrics.pixels ==
+                  scrollInfo.metrics.maxScrollExtent) {
+                provider.fetchProducts();
+              }
+              return false;
             },
-          ),
-        ),
+            child: GridView.builder(
+              padding: EdgeInsets.all(15),
+              itemCount: provider.products.length,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 225,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.60,
+              ),
+              itemBuilder: (context, index) {
+                final product = provider.products[index];
+                return _buildCardProduct(product);
+              },
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCardProduct() {
+  Widget _buildCardProduct(ProductModel product) {
     return Card(
       color: Colors.white,
       elevation: 2,
@@ -121,7 +150,7 @@ class OrderScreen extends StatelessWidget {
                 top: Radius.circular(12),
               ),
               child: Image.network(
-                'https://img.artpal.com/933782/19-23-10-1-14-12-54m.jpg',
+                product.imageUrl ?? 'https://via.placeholder.com/150',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return const Center(child: Icon(Icons.error));
@@ -156,7 +185,7 @@ class OrderScreen extends StatelessWidget {
 
                   // Product name
                   Text(
-                    'ឈ្មោះផលិតផល',
+                    product.nameKm,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.khmer(
@@ -169,7 +198,7 @@ class OrderScreen extends StatelessWidget {
 
                   // Price
                   Text(
-                    '១២០០០ រ',
+                    '${product.price}',
                     style: GoogleFonts.khmer(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

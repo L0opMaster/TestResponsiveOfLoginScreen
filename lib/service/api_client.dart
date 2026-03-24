@@ -6,6 +6,14 @@ class ApiClient {
   final String baseUrl;
   ApiClient({required this.baseUrl});
 
+  Future<http.Response> get(String endpoint, {String? token}) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    final headers = _buildHeaders(token);
+    final response = await http.get(url, headers: headers);
+    _handleAuthError(response);
+    return response;
+  }
+
   Future<http.Response> post(
     String endpoint,
     Map<String, String>? body, {
