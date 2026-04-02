@@ -6,60 +6,64 @@ import 'package:test_responsive/service/product_service.dart';
 import 'package:test_responsive/util/base_url.dart';
 
 class ProductProvider with ChangeNotifier {
-  late final ProductService _productService;
+  late final ProductService productService;
 
   ProductProvider() {
-    _productService = ProductService(
+    productService = ProductService(
       apiClient: ApiClient(baseUrl: BaseUrl().baseUrl),
     );
   }
 
-  List<ProductModel> products = [];
+  // Make private field
+  List<ProductModel> _products = [];
+  bool _isLoading = false;
+  int _page = 0;
+  bool _hasMore = true;
+  String _query = "";
 
-  bool isLoading = false;
-  bool hasMore = true;
+  // Make getter field
+  List<ProductModel> get products => _products;
+  bool get isLoading => _isLoading;
+  bool get hasMore => _hasMore;
+  String get query => _query;
+  int get page => _page;
 
-  int page = 0;
-  String query = "";
-
-  Future<void> fetchProducts({bool refresh = false, int? categoryId}) async {
-    if (isLoading) {
-      return;
-    }
+  // Provider Fetching Products metaData
+  Future<void> fetchProduct({bool refresh = false, int? categoryId}) async {
+    if (isLoading) return;
 
     if (refresh) {
-      page = 0;
+      _page = 0;
       products.clear();
-      hasMore = true;
+      _hasMore = true;
     }
 
     if (!hasMore) return;
 
-    isLoading = true;
+    _isLoading = true;
     notifyListeners();
 
     try {
-      final auth = await StorageService.getToken();
-      final result = await _productService.fetchProducts(
+      final token = await StorageService.getToken();
+      final result = await productService.fetchProduct(
         query: query,
         page: page,
         categoryId: categoryId,
-        token: auth,
+        token: token,
       );
-
       products.addAll(result.content);
-
-      hasMore = !result.last;
-      page = result.page + 1;
+      //false
+      _hasMore = !result.last;
+      _page = result.page + 1;
     } catch (e) {
       print(e);
     }
-    isLoading = false;
+    _isLoading = false;
     notifyListeners();
   }
 
   Future<void> search(String value) async {
-    query = value;
-    await fetchProducts(refresh: true);
+    _query = value;
+    await fetchProduct(refresh: true);
   }
 }

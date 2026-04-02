@@ -79,7 +79,7 @@ class _LoginFormState extends State<LoginForm> {
         final token = await StorageService.getToken();
 
         await StorageService.saveLogin(
-          token: token,
+          token: token!,
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
           terminal: _terminalController.text.trim(),

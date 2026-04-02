@@ -1,5 +1,8 @@
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:test_responsive/provider/customer_provider.dart';
 import 'package:test_responsive/screen/order/customer_screen.dart';
 
 class CartScreen extends StatelessWidget {
@@ -45,25 +48,40 @@ class CartScreen extends StatelessWidget {
           ),
           Row(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(width: 1, color: Colors.blue),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    top: 5,
-                    bottom: 5,
-                    left: 15,
-                    right: 5,
-                  ),
-                  child: Row(
-                    children: [
-                      Text('Jonh Sey'),
-                      SizedBox(width: 20),
-                      Icon(Icons.arrow_drop_down),
-                    ],
-                  ),
+              DropdownButtonHideUnderline(
+                child: Consumer<CustomerProvider>(
+                  builder: (context, provider, child) {
+                    if (provider.customers.isEmpty) {
+                      return const Text("No customers");
+                    }
+
+                    return DropdownButton2(
+                      isDense: true,
+                      style: GoogleFonts.khmer(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      dropdownStyleData: DropdownStyleData(maxHeight: 200),
+                      buttonStyleData: ButtonStyleData(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(width: 1, color: Colors.black87),
+                        ),
+                      ),
+                      valueListenable: provider.selectedCustomer,
+                      hint: const Text("Select Customer"),
+                      items: provider.customers.map((customer) {
+                        return DropdownItem(
+                          value: customer.id,
+                          child: Text(customer.nameKm!),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        provider.setSelectedCustomer(value as int);
+                      },
+                    );
+                  },
                 ),
               ),
               SizedBox(width: 10),

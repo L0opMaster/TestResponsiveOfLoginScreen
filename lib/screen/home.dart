@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:test_responsive/provider/auth_provider.dart';
+import 'package:test_responsive/screen/category/category_screen.dart';
 import 'package:test_responsive/screen/invoice/invice_history_screen.dart';
 import 'package:test_responsive/screen/order/order_screen.dart';
 import 'package:test_responsive/screen/packaging/packging_screen.dart';
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isOrderHover = false;
   bool isPackagingHover = false;
   bool isInvoiceHover = false;
+  bool isCategoryHover = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,6 +107,10 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 20),
 
           _featureInvoice(),
+
+          const SizedBox(height: 30),
+
+          _featureCategory(),
 
           const SizedBox(height: 30),
 
@@ -237,6 +243,58 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   'ដំណើរការបញ្ជាទិញ',
                   style: GoogleFonts.khmer(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // feature Category
+  Widget _featureCategory() {
+    return MouseRegion(
+      onEnter: (event) {
+        setState(() {
+          isCategoryHover = true;
+        });
+      },
+      onExit: (event) => setState(() {
+        isCategoryHover = false;
+      }),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CategoryScreen()),
+          );
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: _cardDecoration(isHover: isCategoryHover),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+            child: Row(
+              children: [
+                _circleIcon(Icons.category, Colors.cyanAccent),
+                const SizedBox(width: 15),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ប្រភេទនៃទំនិញ',
+                      style: GoogleFonts.khmer(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    //const SizedBox(height: 15,),
+                    Text(
+                      'បង្តើតប្រភេទមុខទំនិញថ្មី',
+                      style: GoogleFonts.khmer(fontSize: 12),
+                    ),
+                  ],
                 ),
               ],
             ),

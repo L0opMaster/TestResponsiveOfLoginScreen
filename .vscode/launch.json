@@ -18,6 +18,12 @@
             "type": "dart",
             "deviceId": "chrome",
             "args": ["--web-port", "4200"]
+        },
+        {
+            "name": "test_responsive (linux)",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "linux"
         }
     ]
 }

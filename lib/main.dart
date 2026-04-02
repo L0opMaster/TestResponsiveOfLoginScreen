@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:test_responsive/provider/auth_provider.dart';
+import 'package:test_responsive/provider/category_provider.dart';
+import 'package:test_responsive/provider/customer_provider.dart';
 import 'package:test_responsive/provider/product_provider.dart';
 import 'package:test_responsive/screen/home.dart';
 import 'package:test_responsive/screen/login/login_screen.dart';
@@ -16,7 +18,13 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => authProvider),
         ChangeNotifierProvider(
-          create: (_) => ProductProvider()..fetchProducts(),
+          create: (_) => ProductProvider()..fetchProduct(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CategoryProvider()..fetchCategories(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CustomerProvider()..fetchCustomers(),
         ),
       ],
       child: const MyApp(),

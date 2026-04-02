@@ -8,9 +8,9 @@ class ProductPage {
 
   ProductPage({
     required this.content,
+    required this.last,
     required this.page,
     required this.totalPages,
-    required this.last,
   });
 
   factory ProductPage.fromJson(Map<String, dynamic> json) {

@@ -10,12 +10,20 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> loadToken() async {
     final savedToken = await StorageService.getToken();
-    _token = savedToken.isNotEmpty ? savedToken : null;
+
+    if (savedToken != null && savedToken.isNotEmpty) {
+      _token = savedToken;
+    } else {
+      _token = null;
+    }
+
     notifyListeners();
   }
 
   Future<void> setToken(String token) async {
     _token = token;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(StorageService.tokenKey, token);
     notifyListeners();
   }
 

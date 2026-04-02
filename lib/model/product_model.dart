@@ -1,3 +1,4 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
 class ProductModel {
   final int id;
   final String sku;
@@ -14,10 +15,10 @@ class ProductModel {
   final bool trackInventory;
   final String productType;
   final double lowStockThreshold;
-  final String? categoryId;
+  final int? categoryId;
   final String? categoryNameEn;
   final String? categoryNameKm;
-  final String? parentProductId;
+  final int? parentProductId;
   final String? parentProductNameEn;
   final String? variantLabel;
   final String? bundleMode;
@@ -25,8 +26,8 @@ class ProductModel {
   final String saleUnitCode;
   final int purchaseUnitId;
   final String purchaseUnitCode;
-  final String stockUnitCode;
   final int stockUnitId;
+  final String stockUnitCode;
   final double stock;
   final bool outOfStock;
   final bool lowStock;
@@ -60,13 +61,13 @@ class ProductModel {
     required this.saleUnitCode,
     required this.purchaseUnitId,
     required this.purchaseUnitCode,
-    required this.stockUnitCode,
     required this.stockUnitId,
+    required this.stockUnitCode,
     required this.stock,
-    required this.lowStock,
     required this.outOfStock,
-    required this.bundleComponents,
+    required this.lowStock,
     required this.images,
+    required this.bundleComponents,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -76,6 +77,7 @@ class ProductModel {
       barcode: json['barcode'] ?? '',
       nameEn: json['nameEn'] ?? '',
       nameKm: json['nameKm'] ?? '',
+      imageUrl: json['imageUrl'],
       cost: (json['cost'] ?? 0).toDouble(),
       price: (json['price'] ?? 0).toDouble(),
       resolvedPrice: (json['resolvedPrice'] ?? 0).toDouble(),
@@ -85,18 +87,6 @@ class ProductModel {
       trackInventory: json['trackInventory'] ?? false,
       productType: json['productType'] ?? '',
       lowStockThreshold: (json['lowStockThreshold'] ?? 0).toDouble(),
-      saleUnitId: json['saleUnitId'] ?? 0,
-      saleUnitCode: json['saleUnitCode'] ?? '',
-      purchaseUnitId: json['purchaseUnitId'] ?? 0,
-      purchaseUnitCode: json['purchaseUnitCode'] ?? '',
-      stockUnitId: json['stockUnitId'] ?? 0,
-      stockUnitCode: json['stockUnitCode'] ?? '',
-      stock: (json['stock'] ?? 0).toDouble(),
-      lowStock: json['lowStock'] ?? false,
-      outOfStock: json['outOfStock'] ?? false,
-      bundleComponents: json['bundleComponents'] ?? [],
-      images: json['images'] ?? [],
-      imageUrl: json['imageUrl'],
       categoryId: json['categoryId'],
       categoryNameEn: json['categoryNameEn'],
       categoryNameKm: json['categoryNameKm'],
@@ -104,6 +94,17 @@ class ProductModel {
       parentProductNameEn: json['parentProductNameEn'],
       variantLabel: json['variantLabel'],
       bundleMode: json['bundleMode'],
+      saleUnitId: json['saleUnitId'] ?? 0,
+      saleUnitCode: json['saleUnitCode'] ?? '',
+      purchaseUnitId: json['purchaseUnitId'] ?? 0,
+      purchaseUnitCode: json['purchaseUnitCode'] ?? '',
+      stockUnitId: json['stockUnitId'] ?? 0,
+      stockUnitCode: json['stockUnitCode'] ?? '',
+      stock: (json['stock'] ?? 0).toDouble(),
+      outOfStock: json['outOfStock'] ?? false,
+      lowStock: json['lowStock'] ?? false,
+      images: json['images'] ?? [],
+      bundleComponents: json['bundleComponents'] ?? [],
     );
   }
 }
