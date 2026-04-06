@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:test_responsive/core/storage_service.dart';
 import 'package:test_responsive/provider/auth_provider.dart';
+import 'package:test_responsive/provider/theme_provider.dart';
 import 'package:test_responsive/screen/category/category_screen.dart';
-import 'package:test_responsive/screen/invoice/invice_history_screen.dart';
+import 'package:test_responsive/screen/invoice/invoice_history_screen.dart';
 import 'package:test_responsive/screen/order/order_screen.dart';
 import 'package:test_responsive/screen/packaging/packging_screen.dart';
+import 'package:test_responsive/screen/product/product_screen.dart';
+import 'package:test_responsive/service/api_client.dart';
+import 'package:test_responsive/service/sale_service.dart';
+import 'package:test_responsive/util/base_url.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +25,43 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isPackagingHover = false;
   bool isInvoiceHover = false;
   bool isCategoryHover = false;
+  bool isProductHover = false;
+
+  final SaleService _saleService = SaleService(
+    apiClient: ApiClient(baseUrl: BaseUrl().baseUrl),
+  );
+
+  int _totalOrders = 0;
+  int _completedOrders = 0;
+  int _totalInvoices = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchOverview();
+    });
+  }
+
+  Future<void> _fetchOverview() async {
+    try {
+      final token = await StorageService.getToken();
+      final results = await Future.wait([
+        _saleService.listSales(token: token, status: 'PACKAGING'),
+        _saleService.listSales(token: token, status: 'PREPARING'),
+        _saleService.listSales(token: token, status: 'PAID'),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _totalOrders = results[0].length + results[1].length + results[2].length;
+        _completedOrders = results[2].length;
+        _totalInvoices = results[2].length;
+      });
+    } catch (e) {
+      debugPrint('Failed to fetch overview: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,14 +76,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Top Content
   Widget _topContent() {
+    final theme = Theme.of(context);
+    final themeProvider = context.watch<ThemeProvider>();
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black54,
-            offset: Offset(0, 1),
+            color: theme.shadowColor.withValues(alpha: 0.2),
+            offset: const Offset(0, 1),
             blurRadius: 7,
             spreadRadius: -5,
           ),
@@ -68,18 +114,31 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
 
-            IconButton(
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.logout, size: 20, color: Colors.red),
-              onPressed: () async {
-                await Provider.of<AuthProvider>(
-                  context,
-                  listen: false,
-                ).logOut();
+            Row(
+              children: [
+                IconButton(
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    themeProvider.isDark ? Icons.light_mode : Icons.dark_mode,
+                    size: 20,
+                  ),
+                  onPressed: () => themeProvider.toggleTheme(),
+                ),
+                const SizedBox(width: 10),
+                IconButton(
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(Icons.logout, size: 20, color: Colors.red),
+                  onPressed: () async {
+                    await Provider.of<AuthProvider>(
+                      context,
+                      listen: false,
+                    ).logOut();
 
-                if (!mounted) return;
-                Navigator.pushReplacementNamed(context, "/login");
-              },
+                    if (!mounted) return;
+                    Navigator.pushReplacementNamed(context, "/login");
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -111,6 +170,10 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 30),
 
           _featureCategory(),
+
+          const SizedBox(height: 30),
+
+          _featureProduct(),
 
           const SizedBox(height: 30),
 
@@ -149,11 +212,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: InkWell(
         onHover: (value) => true,
         borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => OrderScreen()),
           );
+          _fetchOverview();
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -208,11 +272,12 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => PackgingScreen()),
           );
+          _fetchOverview();
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -304,6 +369,58 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // feature product
+  Widget _featureProduct() {
+    return MouseRegion(
+      onEnter: (event) {
+        setState(() {
+          isProductHover = true;
+        });
+      },
+      onExit: (event) => setState(() {
+        isProductHover = false;
+      }),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ProductScreen()),
+          );
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: _cardDecoration(isHover: isProductHover),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+            child: Row(
+              children: [
+                _circleIcon(Icons.add_box, Colors.blue),
+                const SizedBox(width: 15),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ទំនិញ ឬផលិតផល',
+                      style: GoogleFonts.khmer(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    //const SizedBox(height: 15,),
+                    Text(
+                      'បង្តើតប្រភេទមុខទំនិញថ្មី',
+                      style: GoogleFonts.khmer(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // FeatureOverview
   Widget _featureOverview() {
     return AnimatedContainer(
@@ -327,9 +444,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _overviewItem('0', 'សរុបការបញ្ជាទិញ', Colors.blue),
-                _overviewItem('0', 'បញ្ចប់', Colors.green),
-                _overviewItem('0', 'វិក្កយបត្រ', Colors.purple),
+                _overviewItem('$_totalOrders', 'សរុបការបញ្ជាទិញ', Colors.blue),
+                _overviewItem('$_completedOrders', 'បញ្ចប់', Colors.green),
+                _overviewItem('$_totalInvoices', 'វិក្កយបត្រ', Colors.purple),
               ],
             ),
           ],
@@ -365,11 +482,12 @@ class _HomeScreenState extends State<HomeScreen> {
       }),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => InviceHistoryScreen()),
           );
+          _fetchOverview();
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -416,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         shape: BoxShape.circle,
       ),
       child: Center(
@@ -426,12 +544,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   BoxDecoration _cardDecoration({bool isHover = false}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return BoxDecoration(
       borderRadius: BorderRadius.circular(20),
-      color: isHover ? const Color(0xFFDAFADB) : Colors.white,
+      color: isHover
+          ? (isDark ? const Color(0xFF2A3A2A) : const Color(0xFFDAFADB))
+          : theme.colorScheme.surface,
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF4b4b4b).withOpacity(0.2),
+          color: theme.shadowColor.withValues(alpha: 0.15),
           offset: const Offset(0, 1),
           blurRadius: 7,
           spreadRadius: -6,

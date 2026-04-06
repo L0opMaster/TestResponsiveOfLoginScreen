@@ -69,15 +69,43 @@ class _CustomerScreenState extends State<CustomerScreen> {
   final _creditLimitCtrl = TextEditingController();
   final _creditBalanceCtrl = TextEditingController();
 
+  // FocusNodes – each TextField gets its own FocusNode so we can
+  // programmatically move focus from one field to the next on submit.
+  // Tab 0: Basic info
+  final _codeFocus = FocusNode();
+  final _displayNameFocus = FocusNode();
+  final _nameEnFocus = FocusNode();
+  final _nameKmFocus = FocusNode();
+  // Tab 1: Contact info
+  final _phoneFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _addressFocus = FocusNode();
+  final _contactPersonFocus = FocusNode();
+  // Tab 2: Financial info
+  final _taxNumberFocus = FocusNode();
+  final _paymentTermsFocus = FocusNode();
+  final _notesFocus = FocusNode();
+  // Tab 3: Credit info
+  final _creditLimitFocus = FocusNode();
+  final _creditBalanceFocus = FocusNode();
+
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
+  // _fetched – flag to ensure we only fetch data once, not on every rebuild.
+  bool _fetched = false;
+
+  // didChangeDependencies – called after initState and whenever dependencies change.
+  // We use this instead of initState because context.read() is safe to call here.
+  // Previously, data was fetched in main.dart at app startup (CustomerProvider()..fetchCustomers()).
+  // Now each screen fetches its own data when opened — faster app start, less memory usage.
   @override
-  void initState() {
-    super.initState();
-    // Fetch customers after the first frame so the provider is ready.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CustomerProvider>().fetchCustomers();
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_fetched) {
+      _fetched = true;
+      // Fetch customers from API only once when this screen opens.
+      context.read<CustomerProvider>().fetchCustomers(refresh: true);
+    }
   }
 
   @override
@@ -98,6 +126,20 @@ class _CustomerScreenState extends State<CustomerScreen> {
     _notesCtrl.dispose();
     _creditLimitCtrl.dispose();
     _creditBalanceCtrl.dispose();
+    // Dispose all FocusNodes to free resources and avoid memory leaks.
+    _codeFocus.dispose();
+    _displayNameFocus.dispose();
+    _nameEnFocus.dispose();
+    _nameKmFocus.dispose();
+    _phoneFocus.dispose();
+    _emailFocus.dispose();
+    _addressFocus.dispose();
+    _contactPersonFocus.dispose();
+    _taxNumberFocus.dispose();
+    _paymentTermsFocus.dispose();
+    _notesFocus.dispose();
+    _creditLimitFocus.dispose();
+    _creditBalanceFocus.dispose();
     super.dispose();
   }
 
@@ -313,13 +355,33 @@ class _CustomerScreenState extends State<CustomerScreen> {
     final editStatusNotifier = ValueNotifier<String?>(statusLabel);
     final editCreditHoldNotifier = ValueNotifier<bool>(customer.creditHold);
 
+    // FocusNodes for each TextField in the edit bottom sheet –
+    // allows moving focus from one field to the next on submit.
+    final codeFocus = FocusNode();
+    final displayNameFocus = FocusNode();
+    final nameEnFocus = FocusNode();
+    final nameKmFocus = FocusNode();
+    final phoneFocus = FocusNode();
+    final emailFocus = FocusNode();
+    final addressFocus = FocusNode();
+    final contactPersonFocus = FocusNode();
+    final taxNumberFocus = FocusNode();
+    final paymentTermsFocus = FocusNode();
+    final notesFocus = FocusNode();
+    final creditLimitFocus = FocusNode();
+    final creditBalanceFocus = FocusNode();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => Padding(
+      // AnimatedPadding prevents focus loss when switching keyboard language.
+      // viewInsets changes briefly during language switch; AnimatedPadding
+      // smooths this out so the widget tree stays stable and focus is kept.
+      builder: (ctx) => AnimatedPadding(
+        duration: const Duration(milliseconds: 100),
         padding: EdgeInsets.only(
           left: 16,
           right: 16,
@@ -347,8 +409,15 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // autofocus: true – auto-focuses when the edit sheet opens.
+              // focusNode: codeFocus – first field in edit sheet.
+              // onSubmitted – moves focus to displayName field.
               TextField(
                 controller: codeCtrl,
+                focusNode: codeFocus,
+                autofocus: true,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => displayNameFocus.requestFocus(),
                 decoration: _inputDecoration('CUST001'),
               ),
               const SizedBox(height: 10),
@@ -381,8 +450,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: displayNameFocus – receives focus from code field.
+              // onSubmitted – moves focus to nameEn field.
               TextField(
                 controller: displayNameCtrl,
+                focusNode: displayNameFocus,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => nameEnFocus.requestFocus(),
                 decoration: _inputDecoration('ឈ្មោះចូលចិត្ត'),
               ),
               const SizedBox(height: 10),
@@ -391,8 +465,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: nameEnFocus – receives focus from displayName field.
+              // onSubmitted – moves focus to nameKm field.
               TextField(
                 controller: nameEnCtrl,
+                focusNode: nameEnFocus,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => nameKmFocus.requestFocus(),
                 decoration: _inputDecoration('English name'),
               ),
               const SizedBox(height: 10),
@@ -401,8 +480,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: nameKmFocus – receives focus from nameEn field.
+              // onSubmitted – moves focus to phone field.
               TextField(
                 controller: nameKmCtrl,
+                focusNode: nameKmFocus,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => phoneFocus.requestFocus(),
                 decoration: _inputDecoration('ឈ្មោះខ្មែរ'),
               ),
               const SizedBox(height: 10),
@@ -413,9 +497,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: phoneFocus – receives focus from nameKm field.
+              // onSubmitted – moves focus to email field.
               TextField(
                 controller: phoneCtrl,
+                focusNode: phoneFocus,
                 keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => emailFocus.requestFocus(),
                 decoration: _inputDecoration('+855...'),
               ),
               const SizedBox(height: 10),
@@ -424,9 +513,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: emailFocus – receives focus from phone field.
+              // onSubmitted – moves focus to address field.
               TextField(
                 controller: emailCtrl,
+                focusNode: emailFocus,
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => addressFocus.requestFocus(),
                 decoration: _inputDecoration('customer@email.com'),
               ),
               const SizedBox(height: 10),
@@ -435,8 +529,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: addressFocus – receives focus from email field.
+              // onSubmitted – moves focus to contactPerson field.
               TextField(
                 controller: addressCtrl,
+                focusNode: addressFocus,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => contactPersonFocus.requestFocus(),
                 decoration: _inputDecoration('អាសយដ្ឋាន'),
               ),
               const SizedBox(height: 10),
@@ -445,8 +544,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: contactPersonFocus – receives focus from address field.
+              // onSubmitted – moves focus to taxNumber field.
               TextField(
                 controller: contactPersonCtrl,
+                focusNode: contactPersonFocus,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => taxNumberFocus.requestFocus(),
                 decoration: _inputDecoration('ឈ្មោះ'),
               ),
               const SizedBox(height: 10),
@@ -457,8 +561,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: taxNumberFocus – receives focus from contactPerson field.
+              // onSubmitted – moves focus to paymentTerms field.
               TextField(
                 controller: taxNumberCtrl,
+                focusNode: taxNumberFocus,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => paymentTermsFocus.requestFocus(),
                 decoration: _inputDecoration('VAT/Tax number'),
               ),
               const SizedBox(height: 10),
@@ -467,8 +576,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: paymentTermsFocus – receives focus from taxNumber field.
+              // onSubmitted – moves focus to notes field.
               TextField(
                 controller: paymentTermsCtrl,
+                focusNode: paymentTermsFocus,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => notesFocus.requestFocus(),
                 decoration: _inputDecoration('Net 30, COD...'),
               ),
               const SizedBox(height: 10),
@@ -477,8 +591,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: notesFocus – receives focus from paymentTerms field.
+              // onSubmitted – moves focus to creditLimit field.
               TextField(
                 controller: notesCtrl,
+                focusNode: notesFocus,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => creditLimitFocus.requestFocus(),
                 decoration: _inputDecoration('មតិ...'),
               ),
               const SizedBox(height: 10),
@@ -489,9 +608,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: creditLimitFocus – receives focus from notes field.
+              // onSubmitted – moves focus to creditBalance field.
               TextField(
                 controller: creditLimitCtrl,
+                focusNode: creditLimitFocus,
                 keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => creditBalanceFocus.requestFocus(),
                 decoration: _inputDecoration('1000'),
               ),
               const SizedBox(height: 10),
@@ -500,9 +624,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
                 style: GoogleFonts.khmer(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
+              // focusNode: creditBalanceFocus – last field in edit sheet.
+              // textInputAction: done – dismisses keyboard.
               TextField(
                 controller: creditBalanceCtrl,
+                focusNode: creditBalanceFocus,
                 keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => creditBalanceFocus.unfocus(),
                 decoration: _inputDecoration('0'),
               ),
               const SizedBox(height: 10),
@@ -666,6 +795,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
             children: [
               _buildTopBar(),
               _buildCreateForm(),
+              _buildSearchBar(),
               _buildCustomerList(),
             ],
           ),
@@ -793,6 +923,26 @@ class _CustomerScreenState extends State<CustomerScreen> {
     );
   }
 
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 15),
+      child: TextField(
+        onChanged: (value) {
+          context.read<CustomerProvider>().search(value);
+        },
+        decoration: InputDecoration(
+          hintText: 'ស្វែងរកអតិថិជន...',
+          hintStyle: GoogleFonts.khmer(fontSize: 13),
+          prefixIcon: const Icon(Icons.search),
+          isDense: true,
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+
   /// Scrollable list of all customers with edit and delete actions.
   Widget _buildCustomerList() {
     return Expanded(
@@ -801,7 +951,7 @@ class _CustomerScreenState extends State<CustomerScreen> {
         child: Consumer<CustomerProvider>(
           builder: (context, provider, child) {
             // ── Loading state ────────────────────────────────────────
-            if (provider.isLoading) {
+            if (provider.isLoading && provider.customers.isEmpty) {
               return const Center(child: CircularProgressIndicator());
             }
 
@@ -829,14 +979,34 @@ class _CustomerScreenState extends State<CustomerScreen> {
               );
             }
 
-            // ── Customer cards ───────────────────────────────────────
-            return ListView.builder(
-              itemCount: provider.customers.length,
-              physics: const BouncingScrollPhysics(),
-              itemBuilder: (context, index) {
-                final customer = provider.customers[index];
-                return _buildCustomerCard(customer);
+            // ── Customer cards with infinite scroll ──────────────────
+            return NotificationListener<ScrollNotification>(
+              onNotification: (scrollInfo) {
+                if (scrollInfo.metrics.pixels >=
+                        scrollInfo.metrics.maxScrollExtent - 200 &&
+                    provider.hasMore &&
+                    !provider.isLoading) {
+                  provider.fetchCustomers();
+                }
+                return false;
               },
+              child: ListView.builder(
+                itemCount: provider.customers.length +
+                    (provider.hasMore ? 1 : 0),
+                physics: const BouncingScrollPhysics(),
+                itemBuilder: (context, index) {
+                  if (index >= provider.customers.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+                  final customer = provider.customers[index];
+                  return _buildCustomerCard(customer);
+                },
+              ),
             );
           },
         ),
@@ -1072,8 +1242,15 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _codeFocus – first field in Basic tab.
+          // autofocus: true – auto-focuses when this tab is shown.
+          // onSubmitted – moves focus to displayName field.
           TextField(
             controller: _codeCtrl,
+            focusNode: _codeFocus,
+            autofocus: true,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _displayNameFocus.requestFocus(),
             decoration: _inputDecoration('CUST001'),
           ),
           const SizedBox(height: 10),
@@ -1183,8 +1360,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _displayNameFocus – receives focus from code field.
+          // onSubmitted – moves focus to nameEn field.
           TextField(
             controller: _displayNameCtrl,
+            focusNode: _displayNameFocus,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _nameEnFocus.requestFocus(),
             decoration: _inputDecoration('ឈ្មោះចូលចិត្ត'),
           ),
           const SizedBox(height: 10),
@@ -1195,8 +1377,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _nameEnFocus – receives focus from displayName field.
+          // onSubmitted – moves focus to nameKm field.
           TextField(
             controller: _nameEnCtrl,
+            focusNode: _nameEnFocus,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _nameKmFocus.requestFocus(),
             decoration: _inputDecoration('ឈ្មោះជាភាសាអង់គ្លេស'),
           ),
           const SizedBox(height: 10),
@@ -1207,8 +1394,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _nameKmFocus – last field in Basic tab.
+          // textInputAction: done – shows "done" button, dismisses keyboard.
           TextField(
             controller: _nameKmCtrl,
+            focusNode: _nameKmFocus,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _nameKmFocus.unfocus(),
             decoration: _inputDecoration('ឈ្មោះជាភាសាខ្មែរ'),
           ),
         ],
@@ -1228,9 +1420,16 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _phoneFocus – first field in Contact tab.
+          // autofocus: true – auto-focuses when this tab is shown.
+          // onSubmitted – moves focus to email field.
           TextField(
             controller: _phoneCtrl,
+            focusNode: _phoneFocus,
+            autofocus: true,
             keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _emailFocus.requestFocus(),
             decoration: _inputDecoration('+855 12 345 678'),
           ),
           const SizedBox(height: 10),
@@ -1240,9 +1439,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _emailFocus – receives focus from phone field.
+          // onSubmitted – moves focus to address field.
           TextField(
             controller: _emailCtrl,
+            focusNode: _emailFocus,
             keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _addressFocus.requestFocus(),
             decoration: _inputDecoration('customer@email.com'),
           ),
           const SizedBox(height: 10),
@@ -1252,8 +1456,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontWeight: FontWeight.bold, fontSize: 15),
           ),
           const SizedBox(height: 3),
+          // focusNode: _addressFocus – receives focus from email field.
+          // onSubmitted – moves focus to contactPerson field.
           TextField(
             controller: _addressCtrl,
+            focusNode: _addressFocus,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _contactPersonFocus.requestFocus(),
             decoration: _inputDecoration('អាសយដ្ឋានអតិថិជន'),
           ),
           const SizedBox(height: 10),
@@ -1263,8 +1472,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _contactPersonFocus – last field in Contact tab.
+          // textInputAction: done – dismisses keyboard.
           TextField(
             controller: _contactPersonCtrl,
+            focusNode: _contactPersonFocus,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _contactPersonFocus.unfocus(),
             decoration: _inputDecoration('ឈ្មោះអ្នកទំនាក់ទំនង'),
           ),
         ],
@@ -1284,8 +1498,15 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _taxNumberFocus – first field in Financial tab.
+          // autofocus: true – auto-focuses when this tab is shown.
+          // onSubmitted – moves focus to paymentTerms field.
           TextField(
             controller: _taxNumberCtrl,
+            focusNode: _taxNumberFocus,
+            autofocus: true,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _paymentTermsFocus.requestFocus(),
             decoration: _inputDecoration('VAT/ Tax registration number'),
           ),
           const SizedBox(height: 10),
@@ -1295,8 +1516,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _paymentTermsFocus – receives focus from taxNumber field.
+          // onSubmitted – moves focus to notes field.
           TextField(
             controller: _paymentTermsCtrl,
+            focusNode: _paymentTermsFocus,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _notesFocus.requestFocus(),
             decoration: _inputDecoration('e.g. Net 30, COD'),
           ),
           const SizedBox(height: 10),
@@ -1306,8 +1532,13 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _notesFocus – last field in Financial tab.
+          // textInputAction: done – dismisses keyboard.
           TextField(
             controller: _notesCtrl,
+            focusNode: _notesFocus,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _notesFocus.unfocus(),
             decoration: _inputDecoration('កំណត់ចំណាំ ឬមតិយោបល់បន្ថែម'),
           ),
         ],
@@ -1327,9 +1558,16 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _creditLimitFocus – first field in Credit tab.
+          // autofocus: true – auto-focuses when this tab is shown.
+          // onSubmitted – moves focus to creditBalance field.
           TextField(
             controller: _creditLimitCtrl,
+            focusNode: _creditLimitFocus,
+            autofocus: true,
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _creditBalanceFocus.requestFocus(),
             decoration: _inputDecoration('1000'),
           ),
           const SizedBox(height: 10),
@@ -1339,9 +1577,14 @@ class _CustomerScreenState extends State<CustomerScreen> {
             style: GoogleFonts.khmer(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 3),
+          // focusNode: _creditBalanceFocus – last field in Credit tab.
+          // textInputAction: done – dismisses keyboard.
           TextField(
             controller: _creditBalanceCtrl,
+            focusNode: _creditBalanceFocus,
             keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _creditBalanceFocus.unfocus(),
             decoration: _inputDecoration('0'),
           ),
           const SizedBox(height: 3),

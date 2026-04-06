@@ -85,7 +85,7 @@ class ApiClient {
     }
     if (response.statusCode >= 500) {
       throw Exception(
-        'Server error: (${response.statusCode}) : Please try again later',
+        'Server error (${response.statusCode}): ${response.body}',
       );
     }
   }

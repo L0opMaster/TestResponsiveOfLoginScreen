@@ -18,6 +18,12 @@ class _CategoryFormState extends State<CategoryForm> {
   final _nameEn = TextEditingController();
   final _parentId = TextEditingController();
 
+  // FocusNodes – each TextField gets its own FocusNode so we can
+  // programmatically move focus from one field to the next.
+  final _nameKmFocus = FocusNode();
+  final _nameEnFocus = FocusNode();
+  final _parentIdFocus = FocusNode();
+
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
   @override
@@ -26,6 +32,10 @@ class _CategoryFormState extends State<CategoryForm> {
     _nameEn.dispose();
     _nameKm.dispose();
     _parentId.dispose();
+    // Dispose FocusNodes to free resources and avoid memory leaks.
+    _nameKmFocus.dispose();
+    _nameEnFocus.dispose();
+    _parentIdFocus.dispose();
     super.dispose();
   }
   // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -211,8 +221,15 @@ class _CategoryFormState extends State<CategoryForm> {
                       ),
                     ),
                     SizedBox(height: 3),
+                    // autofocus: true – auto-focuses this field when the screen opens.
+                    // focusNode: _nameKmFocus – attach FocusNode to control focus.
+                    // onSubmitted – when user presses "done/enter", move focus to nameEn.
                     TextField(
                       controller: _nameKm,
+                      focusNode: _nameKmFocus,
+                      autofocus: true,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => _nameEnFocus.requestFocus(),
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: 'ឈ្មោះជាភាសាខ្មែរ',
@@ -238,8 +255,13 @@ class _CategoryFormState extends State<CategoryForm> {
                       ),
                     ),
                     SizedBox(height: 3),
+                    // focusNode: _nameEnFocus – receives focus from nameKm field.
+                    // onSubmitted – when user presses "done/enter", move focus to parentId.
                     TextField(
                       controller: _nameEn,
+                      focusNode: _nameEnFocus,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => _parentIdFocus.requestFocus(),
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: 'ឈ្មោះជាភាសាខ្មែរ',
@@ -266,8 +288,14 @@ class _CategoryFormState extends State<CategoryForm> {
                 ),
               ),
               SizedBox(height: 3),
+              // focusNode: _parentIdFocus – receives focus from nameEn field.
+              // textInputAction: done – shows "done" button since this is the last field.
+              // onSubmitted – unfocus (dismiss keyboard) when user presses "done".
               TextField(
                 controller: _parentId,
+                focusNode: _parentIdFocus,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _parentIdFocus.unfocus(),
                 decoration: InputDecoration(
                   isDense: true,
                   hintText: 'លេខយោង parentId',

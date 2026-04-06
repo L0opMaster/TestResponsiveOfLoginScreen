@@ -15,10 +15,14 @@ class CategoryProvider with ChangeNotifier {
   }
   List<CategoryModel> _categories = [];
   bool _isLoading = false;
+  bool _isDeleted = false;
+  bool _isUpdate = false;
   bool _isCreate = false;
   String? _errorMessage;
 
   List<CategoryModel> get categories => _categories;
+  bool get isUpdate => _isUpdate;
+  bool get isDelete => _isDeleted;
   bool get isLoading => _isLoading;
   bool get isCreate => _isCreate;
   String? get errorMessage => _errorMessage;
@@ -46,7 +50,7 @@ class CategoryProvider with ChangeNotifier {
           id: 0,
           nameEn: 'All',
           nameKm: 'ទាំងអស់',
-          active: false,
+          active: true,
           parentId: null,
         ),
         ...result,
@@ -79,6 +83,54 @@ class CategoryProvider with ChangeNotifier {
       return false;
     } finally {
       _isCreate = false;
+      notifyListeners();
+    }
+  }
+
+  // ─── UPDATE ───────────────────────────────────────────────────────────────
+
+  /// Updates the category with [id] using [body] and replaces it in the list.
+  /// Returns `true` on success, `false` on failure.
+  Future<bool> updateCategories(int id, Map<String, dynamic> body) async {
+    _isUpdate = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final token = await StorageService.getToken();
+      final updated = await categoryService.updateCategory(
+        id: id,
+        body: body,
+        token: token,
+      );
+      final index = _categories.indexWhere((category) => category.id == id);
+      if (index != -1) _categories[index] = updated;
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isUpdate = false;
+      notifyListeners();
+    }
+  }
+
+  // ─── UPDATE ───────────────────────────────────────────────────────────────
+  Future<bool> deletedCategories(int id) async {
+    _isDeleted = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final token = await StorageService.getToken();
+      await categoryService.deleteCategory(id: id, token: token);
+      _categories.removeWhere((category) => category.id == id);
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isDeleted = false;
       notifyListeners();
     }
   }

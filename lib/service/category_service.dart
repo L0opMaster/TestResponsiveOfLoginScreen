@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:test_responsive/model/category_model.dart';
 import 'package:test_responsive/service/api_client.dart';
 
@@ -21,8 +20,7 @@ class CategoryService {
     }
   }
 
-  // Create category
-
+  // ─── CREATE ───────────────────────────────────────────────────────────────
   Future<CategoryModel> createCategory({
     String? token,
     required Map<String, dynamic> body,
@@ -37,5 +35,35 @@ class CategoryService {
       return CategoryModel.fromJson(jsonDecode(response.body));
     }
     throw Exception('Failed to create categories');
+  }
+
+  // ─── UPDATE ───────────────────────────────────────────────────────────────
+
+  /// Updates an existing customer by [id] and returns the updated [CategoriesModel]
+  Future<CategoryModel> updateCategory({
+    String? token,
+    required int id,
+    required Map<String, dynamic> body,
+  }) async {
+    final response = await apiClient.put(
+      '/api/categories/$id',
+      body,
+      token: token,
+    );
+    if (response.statusCode == 200) {
+      return CategoryModel.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to update customer');
+  }
+
+  // ─── DELETED ───────────────────────────────────────────────────────────────
+  Future<void> deleteCategory({String? token, required int id}) async {
+    final response = await apiClient.delete(
+      '/api/categories/$id',
+      token: token,
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to deleted category');
+    }
   }
 }

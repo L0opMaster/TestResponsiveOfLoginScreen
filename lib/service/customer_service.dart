@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:test_responsive/model/customer_model.dart';
+import 'package:test_responsive/model/customer_page.dart';
 import 'package:test_responsive/service/api_client.dart';
 
 /// Handles all HTTP calls for the `/api/customers` endpoint.
@@ -9,16 +10,21 @@ class CustomerService {
 
   CustomerService({required this.apiClient});
 
-  // ─── READ ────────────────────────────────────────────────────────────────
+  // ─── READ (paginated) ───────────────────────────────────────────────────
 
-  /// Fetches the full list of customers from the server.
-  Future<List<CustomerModel>> fetchCustomer({String? token}) async {
-    final response = await apiClient.get('/api/customers', token: token);
+  /// Fetches a page of customers from the server.
+  Future<CustomerPage> fetchCustomers({
+    String query = '',
+    int page = 0,
+    int size = 20,
+    String? token,
+  }) async {
+    final url = '/api/customers/search?q=$query&page=$page&size=$size';
+    final response = await apiClient.get(url, token: token);
     if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body) as List;
-      return data.map((e) => CustomerModel.fromJson(e)).toList();
+      return CustomerPage.fromJson(jsonDecode(response.body));
     }
-    throw Exception('Failed to get customers');
+    throw Exception('Failed to get customers (${response.statusCode}): ${response.body}');
   }
 
   // ─── CREATE ───────────────────────────────────────────────────────────────
@@ -32,7 +38,7 @@ class CustomerService {
     if (response.statusCode == 200 || response.statusCode == 201) {
       return CustomerModel.fromJson(jsonDecode(response.body));
     }
-    throw Exception('Failed to create customer');
+    throw Exception('Failed to create customer (${response.statusCode}): ${response.body}');
   }
 
   // ─── UPDATE ───────────────────────────────────────────────────────────────
@@ -51,7 +57,7 @@ class CustomerService {
     if (response.statusCode == 200) {
       return CustomerModel.fromJson(jsonDecode(response.body));
     }
-    throw Exception('Failed to update customer');
+    throw Exception('Failed to update customer (${response.statusCode}): ${response.body}');
   }
 
   // ─── DELETE ───────────────────────────────────────────────────────────────
@@ -60,7 +66,7 @@ class CustomerService {
   Future<void> deleteCustomer({String? token, required int id}) async {
     final response = await apiClient.delete('/api/customers/$id', token: token);
     if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception('Failed to delete customer');
+      throw Exception('Failed to delete customer (${response.statusCode}): ${response.body}');
     }
   }
 }

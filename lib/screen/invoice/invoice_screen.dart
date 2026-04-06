@@ -1,15 +1,25 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:printing/printing.dart';
+import 'package:test_responsive/core/storage_service.dart';
+import 'package:test_responsive/model/sale_model.dart';
+import 'package:test_responsive/service/api_client.dart';
+import 'package:test_responsive/service/sale_service.dart';
+import 'package:test_responsive/util/base_url.dart';
 
 class InvoiceScreen extends StatelessWidget {
-  const InvoiceScreen({super.key});
+  final SaleModel sale;
+
+  const InvoiceScreen({super.key, required this.sale});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        shadowColor: Colors.black87,
         elevation: 2,
         title: Text(
           'វិក្កយបត្រ',
@@ -18,26 +28,29 @@ class InvoiceScreen extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
           child: Column(
-            children: [_buildInvoice(), _buildPrintAndShareButtom()],
+            children: [
+              _buildInvoice(context, theme),
+              _buildPrintAndShareButton(theme),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildInvoice() {
+  Widget _buildInvoice(BuildContext context, ThemeData theme) {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           _buildTopIntroduceInvoice(),
-          _buildTopContentInvoice(),
-          _buildCustomerDetails(),
-          _buildItem(),
-          _buildTotal(),
-          _buildThanakYou(),
+          _buildTopContentInvoice(theme),
+          if (sale.customerName != null) _buildCustomerDetails(theme),
+          _buildItems(theme),
+          _buildTotal(theme),
+          _buildThankYou(theme),
         ],
       ),
     );
@@ -45,16 +58,16 @@ class InvoiceScreen extends StatelessWidget {
 
   Widget _buildTopIntroduceInvoice() {
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.only(),
-        color: Colors.lightGreen.shade700,
-      ),
+      decoration: BoxDecoration(color: Colors.lightGreen.shade700),
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Row(
           children: [
-            Icon(Icons.check_circle_outline_outlined, color: Colors.white),
-            SizedBox(width: 10),
+            const Icon(
+              Icons.check_circle_outline_outlined,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -62,7 +75,7 @@ class InvoiceScreen extends StatelessWidget {
                   'ការបញ្ជាទិញបានបញ្ចប់',
                   style: GoogleFonts.khmer(fontSize: 15, color: Colors.white),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 Text(
                   'វិក្កយបត្រ​ត្រូវ​បាន​បង្កើត​ដោយ​ជោគជ័យ',
                   style: GoogleFonts.khmer(fontSize: 12, color: Colors.white70),
@@ -75,11 +88,11 @@ class InvoiceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopContentInvoice() {
+  Widget _buildTopContentInvoice(ThemeData theme) {
     return Container(
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -88,79 +101,96 @@ class InvoiceScreen extends StatelessWidget {
                 Container(
                   width: 35,
                   height: 35,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.blueAccent,
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.inventory_2_outlined,
                     color: Colors.white,
                     size: 15,
                   ),
                 ),
-                SizedBox(width: 15),
+                const SizedBox(width: 15),
                 Text(
                   'KAKNNEA POS ORDER Packaging',
                   style: TextStyle(
                     fontSize: 15,
-                    color: Colors.black,
                     fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 10),
-            Text('KAKNNEA POS', style: TextStyle(fontSize: 12)),
-            SizedBox(height: 20),
+            const SizedBox(height: 10),
+            Text(
+              'KAKNNEA POS',
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('លេខវិក្កយបត្រ', style: GoogleFonts.khmer(fontSize: 12)),
                 Text(
-                  'INV-ORD-149349',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  sale.invoiceNumber ?? '#${sale.id}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('លេខការបញ្ជាទិញ', style: GoogleFonts.khmer(fontSize: 12)),
-                Text(
-                  'ORD-149349',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('កាលបរិច្ឆេត', style: GoogleFonts.khmer(fontSize: 12)),
                 Text(
-                  'March 18, 2026',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  sale.createdAt ?? '',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ],
             ),
+            if (sale.cashierName != null) ...[
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('អ្នកគិតលុយ', style: GoogleFonts.khmer(fontSize: 12)),
+                  Text(
+                    sale.cashierName!,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCustomerDetails() {
+  Widget _buildCustomerDetails(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
         border: Border(
-          top: BorderSide(width: 0.2, color: Colors.black87),
-          bottom: BorderSide(width: 0.2, color: Colors.black87),
+          top: BorderSide(width: 0.2, color: theme.dividerColor),
+          bottom: BorderSide(width: 0.2, color: theme.dividerColor),
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(15),
+        padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -168,25 +198,20 @@ class InvoiceScreen extends StatelessWidget {
               'ព័ត៌មានលម្អិតរបស់អតិថិជន',
               style: GoogleFonts.khmer(
                 fontSize: 15,
-                color: Colors.black,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 10),
-            Text('John Say'),
-            SizedBox(height: 5),
-            Text('+855 123456789'),
-            SizedBox(height: 5),
-            Text('123 Main st, New York, NY 10001'),
+            const SizedBox(height: 10),
+            Text(sale.customerName ?? ''),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildItem() {
+  Widget _buildItems(ThemeData theme) {
     return Container(
-      color: Colors.white,
+      color: theme.colorScheme.surface,
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Column(
@@ -199,75 +224,65 @@ class InvoiceScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 20),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 20),
+            ...sale.lines.asMap().entries.map((entry) {
+              final index = entry.key + 1;
+              final line = entry.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('1.'),
-                        SizedBox(width: 5),
-                        Text('Phone Case'),
+                        Row(
+                          children: [
+                            Text('$index.'),
+                            const SizedBox(width: 5),
+                            Text(
+                              line.productNameKm ?? line.productNameEn ?? '',
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '\$${line.lineTotal.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
                       ],
                     ),
                     Text(
-                      '\$19.99',
+                      '\$${line.unitPrice.toStringAsFixed(2)} x ${line.quantity.toStringAsFixed(0)}',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                        fontSize: 12,
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
                 ),
-                Text('\$19.99 x 1', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            SizedBox(height: 15),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Text('2.'),
-                        SizedBox(width: 5),
-                        Text('Phone Case'),
-                      ],
-                    ),
-                    Text(
-                      '\$19.99',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-                Text('\$19.99 x 1', style: TextStyle(fontSize: 12)),
-              ],
-            ),
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTotal() {
+  Widget _buildTotal(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: theme.colorScheme.primary.withValues(alpha: 0.08),
         border: Border(
-          top: BorderSide(width: 0.2),
-          bottom: BorderSide(width: 0.2),
+          top: BorderSide(width: 0.2, color: theme.dividerColor),
+          bottom: BorderSide(width: 0.2, color: theme.dividerColor),
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(15),
+        padding: const EdgeInsets.all(15),
         child: Column(
           children: [
             Row(
@@ -275,23 +290,49 @@ class InvoiceScreen extends StatelessWidget {
               children: [
                 Text('តម្លៃរង', style: GoogleFonts.khmer(fontSize: 15)),
                 Text(
-                  '\$109.89',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  '\$${sale.subtotal.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            if (sale.discountAmount > 0) ...[
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('បញ្ចុះតម្លៃ', style: GoogleFonts.khmer(fontSize: 15)),
+                  Text(
+                    '-\$${sale.discountAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('ពន្ធ​​​​ (០%)', style: GoogleFonts.khmer(fontSize: 15)),
                 Text(
-                  '\$0.00',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  'ពន្ធ (${(sale.taxRate * 100).toStringAsFixed(0)}%)',
+                  style: GoogleFonts.khmer(fontSize: 15),
+                ),
+                Text(
+                  '\$${sale.taxAmount.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
-            Divider(thickness: 1),
+            const Divider(thickness: 1),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -303,11 +344,11 @@ class InvoiceScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '\$0.00',
+                  '\$${sale.grandTotal.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 25,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ],
@@ -318,11 +359,13 @@ class InvoiceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThanakYou() {
+  Widget _buildThankYou(ThemeData theme) {
     return Container(
-      decoration: BoxDecoration(color: Colors.blue.withOpacity(0.05)),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.04),
+      ),
       child: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Center(
           child: Column(
             children: [
@@ -333,7 +376,7 @@ class InvoiceScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 5),
+              const SizedBox(height: 5),
               Text(
                 'នេះ​ជា​វិក្កយបត្រ​ដែល​បង្កើត​ដោយ​ស្វ័យប្រវត្តិ',
                 style: GoogleFonts.khmer(
@@ -348,43 +391,103 @@ class InvoiceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPrintAndShareButtom() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 20.0, bottom: 20),
-      child: Row(
-        children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                fixedSize: Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadiusGeometry.all(Radius.circular(10)),
+  Future<void> _printInvoice(BuildContext context) async {
+    try {
+      final saleService = SaleService(
+        apiClient: ApiClient(baseUrl: BaseUrl().baseUrl),
+      );
+      final token = await StorageService.getToken();
+      final pdfBytes = await saleService.getInvoicePdf(
+        token: token,
+        id: sale.id,
+      );
+      await Printing.layoutPdf(
+        onLayout: (_) => Uint8List.fromList(pdfBytes),
+        name: 'Invoice_${sale.invoiceNumber ?? sale.id}',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Print failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareInvoice(BuildContext context) async {
+    try {
+      final saleService = SaleService(
+        apiClient: ApiClient(baseUrl: BaseUrl().baseUrl),
+      );
+      final token = await StorageService.getToken();
+      final pdfBytes = await saleService.getInvoicePdf(
+        token: token,
+        id: sale.id,
+      );
+      await Printing.sharePdf(
+        bytes: Uint8List.fromList(pdfBytes),
+        filename: 'Invoice_${sale.invoiceNumber ?? sale.id}.pdf',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Share failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildPrintAndShareButton(ThemeData theme) {
+    return Builder(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.only(top: 20.0, bottom: 20),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  fixedSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () => _printInvoice(context),
+                label: Text(
+                  'Print',
+                  style: TextStyle(color: theme.colorScheme.onSurface),
+                ),
+                icon: Icon(
+                  Icons.print_rounded,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
-              onPressed: () {},
-              label: Text('Print', style: TextStyle(color: Colors.black)),
-              icon: Icon(Icons.print_rounded, color: Colors.black),
             ),
-          ),
-          SizedBox(width: 15),
-          Expanded(
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                fixedSize: Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadiusGeometry.all(Radius.circular(10)),
+            const SizedBox(width: 15),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  fixedSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
+                onPressed: () => _shareInvoice(context),
+                label: Text(
+                  'ចែករំលែក',
+                  style: GoogleFonts.khmer(fontSize: 15, color: Colors.white),
+                ),
+                icon: const Icon(Icons.share, color: Colors.white),
               ),
-              onPressed: () {},
-              label: Text(
-                'ចែករំលែក',
-                style: GoogleFonts.khmer(fontSize: 15, color: Colors.white),
-              ),
-              icon: Icon(Icons.share, color: Colors.white),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

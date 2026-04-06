@@ -6,9 +6,6 @@ import 'package:test_responsive/service/customer_service.dart';
 import 'package:test_responsive/util/base_url.dart';
 
 /// State manager for all customer CRUD operations.
-///
-/// Exposes reactive loading flags per action so the UI can show
-/// granular progress indicators (create, update, delete).
 class CustomerProvider with ChangeNotifier {
   late final CustomerService customerService;
 
@@ -25,6 +22,9 @@ class CustomerProvider with ChangeNotifier {
   bool _isCreate = false;
   bool _isUpdating = false;
   bool _isDeleting = false;
+  int _page = 0;
+  bool _hasMore = true;
+  String _query = '';
   String? _errorMessage;
   ValueNotifier<int?> selectedCustomer = ValueNotifier(null);
 
@@ -35,33 +35,54 @@ class CustomerProvider with ChangeNotifier {
   bool get isCreate => _isCreate;
   bool get isUpdating => _isUpdating;
   bool get isDeleting => _isDeleting;
+  bool get hasMore => _hasMore;
+  String get query => _query;
+  int get page => _page;
   String? get errorMessage => _errorMessage;
 
-  // ─── FETCH ────────────────────────────────────────────────────────────────
+  // ─── FETCH (paginated) ────────────────────────────────────────────────────
 
-  /// Loads all customers from the server into [customers].
-  /// Guards against duplicate calls while already loading.
-  Future<void> fetchCustomers() async {
+  Future<void> fetchCustomers({bool refresh = false}) async {
     if (_isLoading) return;
+
+    if (refresh) {
+      _page = 0;
+      _customers.clear();
+      _hasMore = true;
+    }
+
+    if (!_hasMore) return;
 
     _isLoading = true;
     notifyListeners();
 
     try {
       final token = await StorageService.getToken();
-      _customers = await customerService.fetchCustomer(token: token);
+      final result = await customerService.fetchCustomers(
+        query: _query,
+        page: _page,
+        token: token,
+      );
+      _customers.addAll(result.data);
+      _hasMore = result.hasMore;
+      _page++;
     } catch (e) {
-      _customers = [];
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
     }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  // ─── SEARCH ───────────────────────────────────────────────────────────────
+
+  Future<void> search(String value) async {
+    _query = value;
+    await fetchCustomers(refresh: true);
   }
 
   // ─── CREATE ───────────────────────────────────────────────────────────────
 
-  /// Creates a new customer from [body] and prepends it to the list.
-  /// Returns `true` on success, `false` on failure.
   Future<bool> createCustomer(Map<String, dynamic> body) async {
     _isCreate = true;
     _errorMessage = null;
@@ -76,7 +97,7 @@ class CustomerProvider with ChangeNotifier {
       _customers = [newCustomer, ..._customers];
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     } finally {
       _isCreate = false;
@@ -86,8 +107,6 @@ class CustomerProvider with ChangeNotifier {
 
   // ─── UPDATE ───────────────────────────────────────────────────────────────
 
-  /// Updates the customer with [id] using [body] and replaces it in the list.
-  /// Returns `true` on success, `false` on failure.
   Future<bool> updateCustomer(int id, Map<String, dynamic> body) async {
     _isUpdating = true;
     _errorMessage = null;
@@ -104,7 +123,7 @@ class CustomerProvider with ChangeNotifier {
       if (idx != -1) _customers[idx] = updated;
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     } finally {
       _isUpdating = false;
@@ -114,8 +133,6 @@ class CustomerProvider with ChangeNotifier {
 
   // ─── DELETE ───────────────────────────────────────────────────────────────
 
-  /// Deletes the customer with [id] and removes it from the list.
-  /// Returns `true` on success, `false` on failure.
   Future<bool> deleteCustomer(int id) async {
     _isDeleting = true;
     _errorMessage = null;
@@ -127,7 +144,7 @@ class CustomerProvider with ChangeNotifier {
       _customers.removeWhere((c) => c.id == id);
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
       return false;
     } finally {
       _isDeleting = false;

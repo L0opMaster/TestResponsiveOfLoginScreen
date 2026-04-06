@@ -70,6 +70,26 @@ class ProductModel {
     required this.bundleComponents,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'sku': sku,
+      'barcode': barcode,
+      'nameEn': nameEn,
+      'nameKm': nameKm,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+      'cost': cost,
+      'price': price,
+      'active': active,
+      'sellable': sellable,
+      'purchasable': purchasable,
+      'trackInventory': trackInventory,
+      'productType': productType,
+      'lowStockThreshold': lowStockThreshold,
+      if (categoryId != null) 'categoryId': categoryId,
+      'stock': stock,
+    };
+  }
+
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
       id: json['id'] ?? 0,
