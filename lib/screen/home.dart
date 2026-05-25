@@ -64,12 +64,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          _topContent(),
-          Expanded(child: _bodyContent()),
-        ],
+    return SafeArea(
+      child: Scaffold(
+        body: Column(
+          children: [
+            _topContent(),
+            Expanded(child: _bodyContent()),
+          ],
+        ),
       ),
     );
   }
@@ -103,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   'សូមស្វាគមន៍ការត្រឡប់មកវិញ',
                   style: GoogleFonts.khmer(
-                    fontSize: 18,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -124,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   onPressed: () => themeProvider.toggleTheme(),
                 ),
-                const SizedBox(width: 10),
+                // const SizedBox(width: 10),
                 IconButton(
                   constraints: const BoxConstraints(),
                   icon: const Icon(Icons.logout, size: 20, color: Colors.red),

@@ -1,7 +1,11 @@
+import 'dart:io' show File, Platform;
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:test_responsive/core/storage_service.dart';
 import 'package:test_responsive/model/sale_model.dart';
@@ -391,7 +395,7 @@ class InvoiceScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _printInvoice(BuildContext context) async {
+  Future<Uint8List?> _fetchPdfBytes(BuildContext context, bool thermal) async {
     try {
       final saleService = SaleService(
         apiClient: ApiClient(baseUrl: BaseUrl().baseUrl),
@@ -400,37 +404,66 @@ class InvoiceScreen extends StatelessWidget {
       final pdfBytes = await saleService.getInvoicePdf(
         token: token,
         id: sale.id,
+        thermal: thermal,
       );
-      await Printing.layoutPdf(
-        onLayout: (_) => Uint8List.fromList(pdfBytes),
-        name: 'Invoice_${sale.invoiceNumber ?? sale.id}',
-      );
+
+      // Validate PDF bytes
+      if (pdfBytes.isEmpty) {
+        throw Exception('PDF is empty (0 bytes)');
+      }
+      // PDF files start with "%PDF"
+      if (pdfBytes.length < 4 ||
+          pdfBytes[0] != 0x25 ||
+          pdfBytes[1] != 0x50 ||
+          pdfBytes[2] != 0x44 ||
+          pdfBytes[3] != 0x46) {
+        throw Exception('Invalid PDF (not %PDF header). Got ${pdfBytes.length} bytes');
+      }
+
+      return Uint8List.fromList(pdfBytes);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Print failed: $e'),
+            content: Text('Failed to load PDF: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
+      return null;
     }
   }
 
   Future<void> _shareInvoice(BuildContext context) async {
+    final pdfBytes = await _fetchPdfBytes(context, false);
+    if (pdfBytes == null || !context.mounted) return;
+
+    final filename = 'Invoice_${sale.invoiceNumber ?? sale.id}.pdf';
+
     try {
-      final saleService = SaleService(
-        apiClient: ApiClient(baseUrl: BaseUrl().baseUrl),
-      );
-      final token = await StorageService.getToken();
-      final pdfBytes = await saleService.getInvoicePdf(
-        token: token,
-        id: sale.id,
-      );
-      await Printing.sharePdf(
-        bytes: Uint8List.fromList(pdfBytes),
-        filename: 'Invoice_${sale.invoiceNumber ?? sale.id}.pdf',
-      );
+      // Linux: Printing.sharePdf is broken — save the PDF to a temp file and
+      // open it in the system PDF viewer (evince/Okular). The user can print
+      // from there. Windows/Android/iOS use the regular share sheet.
+      if (!kIsWeb && Platform.isLinux) {
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/$filename');
+        await file.writeAsBytes(pdfBytes);
+
+        final result = await OpenFilex.open(file.path);
+        if (!context.mounted) return;
+
+        if (result.type != ResultType.done) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open PDF: ${result.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        await Printing.sharePdf(bytes: pdfBytes, filename: filename);
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -447,46 +480,23 @@ class InvoiceScreen extends StatelessWidget {
     return Builder(
       builder: (context) => Padding(
         padding: const EdgeInsets.only(top: 20.0, bottom: 20),
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  fixedSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () => _printInvoice(context),
-                label: Text(
-                  'Print',
-                  style: TextStyle(color: theme.colorScheme.onSurface),
-                ),
-                icon: Icon(
-                  Icons.print_rounded,
-                  color: theme.colorScheme.onSurface,
-                ),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              fixedSize: const Size.fromHeight(50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  fixedSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () => _shareInvoice(context),
-                label: Text(
-                  'ចែករំលែក',
-                  style: GoogleFonts.khmer(fontSize: 15, color: Colors.white),
-                ),
-                icon: const Icon(Icons.share, color: Colors.white),
-              ),
+            onPressed: () => _shareInvoice(context),
+            label: Text(
+              'ចែករំលែក',
+              style: GoogleFonts.khmer(fontSize: 15, color: Colors.white),
             ),
-          ],
+            icon: const Icon(Icons.share, color: Colors.white),
+          ),
         ),
       ),
     );
